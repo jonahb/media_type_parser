@@ -1,0 +1,131 @@
+module MediaTypeParser
+  module Generated
+    grammar MediaType
+
+      rule media_type
+        type "/" subtype param_clauses:(ows ";" ows parameter)* {
+          def value
+            [
+              type.value,
+              subtype.value,
+              param_clauses.elements.collect { |clause| clause.parameter.value }
+            ]
+          end
+        }
+      end
+
+      rule type
+        token
+      end
+
+      rule subtype
+        token
+      end
+
+      rule parameter
+        attribute "=" param_value {
+          def value
+            [ attribute.value, param_value.value ]
+          end
+        }
+      end
+
+      rule attribute
+        token
+      end
+
+      rule param_value
+        token / quoted_string
+      end
+
+      rule token
+        tchar+ {
+          def value
+            text_value
+          end
+        }
+      end
+
+      rule quoted_string
+        dquote chars:(qdtext / quoted_pair)* dquote {
+          def value
+            chars.elements.collect do |char|
+              char.terminal? ? char.text_value : char.value
+            end.join
+          end
+        }
+      end
+
+      # linear whitespace; visible characters (0x21-0x7e) except '\' and '"';
+      # and non-ASCII characters
+      rule qdtext
+        sp / htab / "\x21" / [\x23-\x5b] / [\x5d-\x7e] / obs_text
+      end
+
+      rule quoted_pair
+        "\\" (wsp / vchar / obs_text) {
+          def value
+            elements[ 1 ].text_value
+          end
+        }
+      end
+
+      rule tchar
+        "!" / "#" / "$" / "%" / "&" / "'" / "*" / "+" / "-" / "." / "^" / "_" / "`" / "|" / "~" / digit / alpha
+      end
+
+      rule ows
+        (sp / htab)*
+      end
+
+      rule obs_text
+        [\x80-\xff]
+      end
+
+      rule digit
+        [0-9]
+      end
+
+      rule alpha
+        [a-z] / [A-Z]
+      end
+
+      rule vchar
+        [\x21-\x7e]
+      end
+
+      rule dquote
+        "\""
+      end
+
+      rule cr
+        "\r"
+      end
+
+      rule lf
+        "\n"
+      end
+
+      rule crlf
+        cr lf
+      end
+
+      rule sp
+        " "
+      end
+
+      rule htab
+        "\t"
+      end
+
+      rule obs_fold
+        crlf
+      end
+
+      rule wsp
+        sp / htab
+      end
+
+    end
+  end
+end
